@@ -1,1 +1,1 @@
-DB_PATH = 'BackEnd/DB/tournament.db'
+DB_PATH = 'DB/tournament.db'
