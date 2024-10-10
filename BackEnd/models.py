@@ -8,9 +8,14 @@ from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 
 from config import DB_PATH
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, DB_PATH)}"
 
 
-engine = create_engine(f'sqlite:///{DB_PATH}')
+#engine = create_engine(f'sqlite:///{DB_PATH}')
+engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 
 # association tables
