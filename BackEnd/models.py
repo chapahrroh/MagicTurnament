@@ -1,21 +1,15 @@
 #TODO Agregar métodos para terminar un torneo y guardar los resultados
 
-from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, DateTime, Sequence, Table
+from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Table
+from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.orm import declarative_base
-from sqlalchemy.orm import relationship
-
-from config import DB_PATH
 import os
 
+# Create base directory path
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE_URL = f"sqlite:///{os.path.join(BASE_DIR, DB_PATH)}"
+DB_PATH = f"sqlite:///{os.path.join(BASE_DIR, 'tournament.db')}"
 
-
-#engine = create_engine(f'sqlite:///{DB_PATH}')
-engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 
 # association tables
@@ -59,7 +53,7 @@ class TournamentScores(Base):
 
 
 class Matches(Base):
-    __tablename__ ='matches'
+    __tablename__ = 'matches'
     id = Column(Integer, primary_key=True, autoincrement=True)
     tournament_id = Column(Integer, ForeignKey('tournament.id'))
     player1_id = Column(Integer, ForeignKey('players.id'))
@@ -70,9 +64,10 @@ class Matches(Base):
     win = Column(Integer, default=-1)
     status = Column(Boolean, default=False)
     draw = Column(Boolean, default=False)
+    phase = Column(Integer, default=1)  # Add this line for phase tracking
 
 
-
-Base.metadata.create_all(engine)
-
-session = sessionmaker(bind=engine)()
+# Create engine and session
+engine = create_engine(DB_PATH)
+Session = sessionmaker(bind=engine)
+session = Session()
