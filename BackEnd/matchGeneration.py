@@ -12,18 +12,22 @@ def matchesElimination(matches: List[Matches], players: List, tournamentId: int)
             player2_id=players[i + 1].id,
             win=-1,
             status=False,
-            draw=False
+            draw=False,
+            phase=1
         ))
 
+    # If odd number of players, create a phantom match
     if len(players) % 2 != 0:
-        matches.append(Matches(
+        phantom_match = Matches(
             tournament_id=tournamentId,
             player1_id=players[-1].id,
-            player2_id=6,
-            win=-1,
-            status=False,
-            draw=False
-        ))
+            player2_id=None,  # No opponent
+            win=players[-1].id,  # Automatically wins
+            status=True,  # Match is completed
+            draw=False,
+            phase=1
+        )
+        matches.append(phantom_match)
 
 def matchesRoundRobin(matches: List[Matches], players: List, tournamentId: int) -> None:
     """Generate round robin tournament matches - each player plays against others once"""
@@ -69,69 +73,57 @@ def generateMatches(tournament_id: int) -> List[Matches]:
         session.rollback()
         raise Exception(f"Error generating matches: {str(e)}")
 
-def generateNextPhaseMatches(tournament_id: int) -> List[Matches]:
-    """Generate matches for the next phase of an elimination tournament"""
-    try:
-        tournament = session.query(Tournament).filter(Tournament.id == tournament_id).first()
-        if not tournament:
-            raise ValueError("Tournament not found")
+def generateNextPhaseMatches(tournament, current_phase: int):
+    """Generate matches for the next phase in an elimination tournament"""
+    # Get winners from current phase
+    current_matches = [m for m in tournament.matches if m.phase == current_phase]
+    winners = []
+    for match in current_matches:
+        if match.player2_id is None:
+            # Phantom match - player automatically advances
+            winners.append(match.player1_id)
+        elif match.draw:
+            # In case of draw, randomly select a winner
+            import random
+            winner_id = random.choice([match.player1_id, match.player2_id])
+            winners.append(winner_id)
+        else:
+            winners.append(match.win)
 
-        # Get the current highest phase
-        current_phase = session.query(func.max(Matches.phase)).filter(
-            Matches.tournament_id == tournament_id
-        ).scalar() or 1
+    print(f"DEBUG: Winners from phase {current_phase}: {winners}")
 
-        # Get winners from the current phase
-        current_phase_winners = []
-        current_phase_matches = session.query(Matches).filter(
-            Matches.tournament_id == tournament_id,
-            Matches.phase == current_phase
-        ).all()
+    # If only one winner, tournament is finished
+    if len(winners) < 2:
+        return []
 
-        for match in current_phase_matches:
-            if not match.status:
-                raise ValueError("Cannot generate next phase: current phase has unfinished matches")
-            if match.draw:
-                raise ValueError("Cannot generate next phase: current phase has draws")
-            if match.win != -1:
-                current_phase_winners.append(match.win)
+    # Create matches for next phase
+    next_phase = current_phase + 1
+    new_matches = []
 
-        if not current_phase_winners:
-            raise ValueError("No winners found in current phase")
-
-        # Generate matches for next phase
-        next_phase_matches = []
-        for i in range(0, len(current_phase_winners) - 1, 2):
-            next_phase_matches.append(
-                Matches(
-                    tournament_id=tournament_id,
-                    player1_id=current_phase_winners[i],
-                    player2_id=current_phase_winners[i + 1],
-                    phase=current_phase + 1,
-                    win=-1,
-                    status=False,
-                    draw=False
-                )
+    # Pair winners for next phase
+    for i in range(0, len(winners), 2):
+        if i + 1 < len(winners):
+            new_match = Matches(
+                tournament_id=tournament.id,
+                player1_id=winners[i],
+                player2_id=winners[i + 1],
+                win=-1,
+                status=False,
+                draw=False,
+                phase=next_phase
             )
-
-        # Handle odd number of winners
-        if len(current_phase_winners) % 2 != 0:
-            next_phase_matches.append(
-                Matches(
-                    tournament_id=tournament_id,
-                    player1_id=current_phase_winners[-1],
-                    player2_id=current_phase_winners[0],  # Match against first winner
-                    phase=current_phase + 1,
-                    win=-1,
-                    status=False,
-                    draw=False
-                )
+        else:
+            # Last player gets a phantom match
+            new_match = Matches(
+                tournament_id=tournament.id,
+                player1_id=winners[i],
+                player2_id=None,
+                win=winners[i],
+                status=True,
+                draw=False,
+                phase=next_phase
             )
+        new_matches.append(new_match)
 
-        session.add_all(next_phase_matches)
-        session.commit()
-        return next_phase_matches
-
-    except Exception as e:
-        session.rollback()
-        raise e
+    print(f"DEBUG: Generated {len(new_matches)} matches for phase {next_phase}")
+    return new_matches

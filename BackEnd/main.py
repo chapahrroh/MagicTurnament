@@ -140,6 +140,7 @@ async def getTournament(tournament_id: int):
             "type": tournament.type,
             "creationDate": tournament.creationDate,
             "status": tournament.status,
+            "currentPhase": tournament.currentPhase,  # Add current phase
             "players": [
                 {
                     "id": p.id,
@@ -157,7 +158,8 @@ async def getTournament(tournament_id: int):
                     "player2_id": m.player2_id,
                     "win": m.win,
                     "status": m.status,
-                    "draw": m.draw
+                    "draw": m.draw,
+                    "phase": m.phase  # Add phase information
                 } for m in tournament.matches
             ],
             "scores": [
@@ -258,43 +260,69 @@ async def deleteTournament(tournament_id: int):
 
 @app.post("/tournament/{tournament_id}/generate_matches")
 async def generateMatchesAPI(tournament_id: int):
+    print(f"DEBUG: Starting match generation for tournament {tournament_id}")
     tournament = session.query(Tournament).filter(Tournament.id == tournament_id).first()
     if not tournament:
+        print(f"DEBUG: Tournament {tournament_id} not found")
         raise HTTPException(status_code=404, detail="Tournament not found")
 
+    print(f"DEBUG: Tournament type: {tournament.type}")
+    print(f"DEBUG: Number of players: {len(tournament.players)}")
+
     if len(tournament.players) < 2:
+        print("DEBUG: Not enough players to generate matches")
         raise HTTPException(status_code=400, detail="Not enough players to generate matches")
+
     if(tournament.status):
+        print("DEBUG: Tournament is already finished")
         raise HTTPException(status_code=400, detail="Tournament already finished")
 
     try:
+        print("DEBUG: Calling generateMatches function")
         # Get matches and ensure they're Match objects
         matches = generateMatches(tournament_id)
+        print(f"DEBUG: Generated {len(matches) if matches else 0} matches")
+
         if not matches:
+            print("DEBUG: No matches were generated")
             raise HTTPException(
                 status_code=400,
                 detail="No matches were generated"
             )
 
         # Ensure each match has the correct tournament_id
-        for match in matches:
+        print("DEBUG: Validating generated matches")
+        for i, match in enumerate(matches):
+            print(f"DEBUG: Validating match {i+1}/{len(matches)}")
+            print(f"DEBUG: Match details - P1: {match.player1_id}, P2: {match.player2_id}")
+
             if not isinstance(match, Matches):
+                print(f"DEBUG: Invalid match object type: {type(match)}")
                 raise HTTPException(
                     status_code=500,
                     detail="Invalid match object generated"
                 )
+
             match.tournament_id = tournament_id
-            if match.player1_id is None or match.player2_id is None:
+            if match.player1_id is None or (match.player2_id is None and not tournament.type == "elimination"):
+                print(f"DEBUG: Invalid match - missing player(s)")
                 raise HTTPException(
                     status_code=400,
                     detail="Invalid match generated - missing player"
                 )
             session.add(match)
 
+        print("DEBUG: Committing matches to database")
         session.commit()
+        print("DEBUG: Successfully generated and saved matches")
         return matches
+
     except Exception as e:
         session.rollback()
+        print(f"DEBUG: Error generating matches: {str(e)}")
+        print(f"DEBUG: Error type: {type(e)}")
+        import traceback
+        print(f"DEBUG: Stack trace: {traceback.format_exc()}")
         raise HTTPException(
             status_code=500,
             detail=f"Error generating matches: {str(e)}"
@@ -495,30 +523,75 @@ async def finishTournament(tournament_id: int):
             detail=f"Error finishing tournament: {str(e)}"
         )
 
-@app.post("/tournament/{tournament_id}/next_phase")
-async def generateNextPhase(tournament_id: int):
+@app.post("/tournament/{tournament_id}/next-phase")
+async def next_phase(tournament_id: int):
     try:
+        print(f"DEBUG: Starting next phase for tournament {tournament_id}")
+        # Get the tournament
         tournament = session.query(Tournament).filter(Tournament.id == tournament_id).first()
         if not tournament:
+            print(f"DEBUG: Tournament {tournament_id} not found")
             raise HTTPException(status_code=404, detail="Tournament not found")
 
+        print(f"DEBUG: Tournament status: {tournament.status}, type: {tournament.type}")
+        # Verify tournament is not finished
         if tournament.status:
-            raise HTTPException(status_code=400, detail="Tournament is finished")
+            print("DEBUG: Tournament is already finished")
+            raise HTTPException(status_code=400, detail="Tournament is already finished")
 
-        if tournament.type != "Elimination":
-            raise HTTPException(status_code=400, detail="Only elimination tournaments support phases")
+        # Verify tournament is elimination type
+        if tournament.type != "elimination":
+            print(f"DEBUG: Invalid tournament type: {tournament.type}")
+            raise HTTPException(status_code=400, detail="Only elimination tournaments can advance phases")
 
-        matches = generateNextPhaseMatches(tournament_id)
-        return {
-            "message": "Next phase generated successfully",
-            "matches": matches
-        }
+        # Get current phase matches and verify they're all complete
+        current_phase = tournament.currentPhase or 1
+        print(f"DEBUG: Current phase: {current_phase}")
+        current_matches = [m for m in tournament.matches if m.phase == current_phase]
+        print(f"DEBUG: Found {len(current_matches)} matches in current phase")
+        print(f"DEBUG: Match statuses: {[m.status for m in current_matches]}")
 
-    except ValueError as ve:
-        raise HTTPException(status_code=400, detail=str(ve))
+        if not all(match.status for match in current_matches):
+            print("DEBUG: Not all matches are completed")
+            raise HTTPException(
+                status_code=400,
+                detail="All matches in current phase must be completed before advancing"
+            )
+
+        # Generate next phase matches
+        print("DEBUG: Generating next phase matches")
+        next_phase_matches = generateNextPhaseMatches(tournament, current_phase)
+        print(f"DEBUG: Generated matches: {next_phase_matches}")
+
+        if not next_phase_matches:
+            print("DEBUG: No matches generated for next phase")
+            # Instead of finishing the tournament, just return a message
+            return {"message": "No es posible generar más fases"}
+
+        # Add new matches to session
+        print(f"DEBUG: Adding {len(next_phase_matches)} matches to database")
+        for match in next_phase_matches:
+            session.add(match)
+
+        # Update tournament current phase
+        print(f"DEBUG: Updating tournament phase to {current_phase + 1}")
+        tournament.currentPhase = current_phase + 1
+
+        # Commit all changes in a single transaction
+        session.commit()
+        print("DEBUG: Successfully committed changes")
+
+        return {"message": "Advanced to next phase successfully"}
+
+    except HTTPException as he:
+        session.rollback()
+        print(f"DEBUG: HTTP Exception: {he.detail}")
+        raise he
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generating next phase: {str(e)}"
-        )
+        session.rollback()
+        print(f"DEBUG: Unexpected error: {str(e)}")
+        print(f"DEBUG: Error type: {type(e)}")
+        import traceback
+        print(f"DEBUG: Stack trace: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 

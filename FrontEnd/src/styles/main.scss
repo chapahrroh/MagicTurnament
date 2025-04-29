@@ -1,0 +1,27 @@
+// src/styles/main.scss
+
+// 1. Tus colores mágicos
+$gold-magic: #ffc847;
+$blue-magic: #3eb2ff;
+$green-magic: #56d364;
+$red-magic: #ff5f56;
+$black-magic: #2e2e2e;
+$white-magic: #ededed;
+$dark-magic: #1d142d;
+
+// 2. Sobreescribe las variables de Bootstrap
+$primary: $blue-magic;
+$secondary: $gold-magic;
+$success: $green-magic;
+$danger: $red-magic;
+$dark: $black-magic;
+$light: $white-magic;
+$body-bg: $dark-magic;
+
+// 3. Ahora sí, importa Bootstrap
+@import "bootstrap/scss/bootstrap";
+
+[data-bs-theme="dark"] {
+  --bs-body-bg: #1d142d; /* Tu fondo mágico oscuro */
+  --bs-body-color: #ededed; /* Tu texto mágico claro */
+}
