@@ -51,4 +51,11 @@ type TournamentCardProps = {
   onSuccess: () => void;
 };
 
-export type { Tournament, PlayerCardProps };
+export type {
+  Tournament,
+  PlayerCardProps,
+  TournamentCardProps,
+  Scores,
+  Matches,
+  Player,
+};
