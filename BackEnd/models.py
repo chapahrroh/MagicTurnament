@@ -1,5 +1,3 @@
-#TODO Agregar métodos para terminar un torneo y guardar los resultados
-
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey, DateTime, Table
 from sqlalchemy.orm import relationship, sessionmaker, DeclarativeBase
 from sqlalchemy import create_engine
@@ -20,12 +18,17 @@ tournamentsPlayers = Table('tournamentsPlayers', Base.metadata,
 
 class Players(Base):
     __tablename__ = 'players'
-    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
-    name = Column(String(100))  # Add max length
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True) # Add index for faster lookups
+    name = Column(String(100), unique=True)  # Add max length and unique constraint
+    email = Column(String(100), unique=True)  # Add max length and unique constraint
+    hashed_password = Column(String(100))  # Add max length
     creationDate = Column(DateTime)
     personalScore = Column(Integer, default=0)
+    disabled = Column(Boolean, default=False) # to track if the player is disabled
+
+    # Define the relationship with the Tournament model
     tournament = relationship("Tournament",secondary=tournamentsPlayers, back_populates="players")
-    tournament_scores = relationship("TournamentScores", primaryjoin="Players.id == TournamentScores.player_id")  #
+    tournament_scores = relationship("TournamentScores", back_populates="player")
 
     def __repr__(self):
         return f"Players(name={self.name}, creationDate={self.creationDate}, personalScore={self.personalScore}, tournament={self.tournament})"
@@ -80,10 +83,25 @@ class Matches(Base):
     draw = Column(Boolean, default=False)
     phase = Column(Integer, default=1)  # Add this line for phase tracking
 
+class Decks(Base):
+    __tablename__ = 'decks'
+    id = Column(Integer, primary_key=True, autoincrement=True, index=True)
+    player_id = Column(Integer, ForeignKey('players.id'), index=True)
+    player = relationship("Players")
+    deckName = Column(String(100))  # Add max length
+    format = Column(String(50))  # Add max length
+    deckDescription = Column(String(255))  # Add max length
+    creationDate = Column(DateTime)
+    deckList = Column(String)  # Add max length
+
+
+    def __repr__(self):
+        return f"Decks(deckName={self.deckName}, deckDescription={self.deckDescription}, creationDate={self.creationDate})"
+
 
 # Create engine and session
-engine = create_engine(DB_PATH)
-Session = sessionmaker(bind=engine)
+engine = create_engine(DB_PATH, echo=True)
+Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 session = Session()
 
 def init_db():

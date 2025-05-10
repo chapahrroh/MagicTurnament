@@ -1,109 +1,121 @@
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useAuth } from "../context/playerContext";
 
 interface AddPlayerTournamentProps {
   status: boolean;
   onSuccess: () => void;
   tournament_id: string;
-  hasMatches: boolean; // Add this new prop
+  hasMatches: boolean;
+  players: Array<{ id: number; name: string }>;
 }
 
-function AddPlayerTournament(props: AddPlayerTournamentProps) {
-  const { onSuccess, tournament_id, status, hasMatches } = props;
-  const [showModal, setShowModal] = useState(false);
-  //   const [tournament_id, setTournaments] = useState("");
-  const [player_id, setPlayer] = useState("");
+function AddPlayerTournament({
+  status,
+  onSuccess,
+  tournament_id,
+  hasMatches,
+  players,
+}: AddPlayerTournamentProps) {
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRegistered, setIsRegistered] = useState(false);
+  const { isAuthenticated, user } = useAuth();
 
-  //   const handleInputTournamentChange = (e: ChangeEvent<HTMLInputElement>) => {
-  //     setTournaments(e.target.value);
-  //   };
-  const handleInputPlayerChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setPlayer(e.target.value);
+  useEffect(() => {
+    if (isAuthenticated && user && players) {
+      setIsRegistered(players.some((player) => player.id === user.id));
+    }
+  }, [isAuthenticated, user, players]);
+
+  const handleRegister = async () => {
+    if (!isAuthenticated || !user) {
+      setError("Debes iniciar sesión para inscribirte");
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      await axios.post(
+        `http://192.168.56.101:8000/tournament/${tournament_id}/player/${user.id}`
+      );
+
+      onSuccess();
+    } catch (error: any) {
+      console.error("Error registering to tournament:", error);
+      if (error.response?.status === 404) {
+        setError("Torneo no encontrado");
+      } else if (
+        error.response?.data?.message === "This player is in the tournament"
+      ) {
+        setError("Ya estás inscrito en este torneo");
+      } else {
+        setError(
+          error.response?.data?.detail || "Error al inscribirse al torneo"
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    const res = await axios.post(
-      `http://192.168.56.101:8000/tournament/${tournament_id}/player/${player_id}`
-    );
-
-    console.log(res);
-    // setTournaments("");
-    setPlayer("");
-    setShowModal(false);
-    onSuccess();
-  };
+  if (status || hasMatches) {
+    return null;
+  }
 
   return (
     <div>
-      <button
-        className="btn btn-primary"
-        onClick={() => setShowModal(true)}
-        disabled={status || hasMatches} // Add hasMatches to disabled condition
-      >
-        Agregar Jugador
-      </button>
-
-      {/* Modal */}
-      <div
-        className={`modal fade ${showModal ? "show" : ""}`}
-        style={{ display: showModal ? "block" : "none" }}
-        tabIndex={-1}
-        role="dialog"
-      >
-        <div className="modal-dialog modal-dialog-centered" role="document">
-          <div className="modal-content">
-            <div className="modal-header">
-              <h5 className="modal-title">Agregar Jugador a torneo</h5>
-            </div>
-
-            <form onSubmit={handleSubmit}>
-              {/* <div className="modal-body">
-                <div className="form-group">
-                  <label>Torneo ID</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="nombre"
-                    required
-                    value={tournament_id}
-                    onChange={handleInputTournamentChange}
-                  />
-                </div>
-              </div> */}
-              <div className="modal-body">
-                <div className="form-group">
-                  <label>Player ID</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    name="nombre"
-                    required
-                    value={player_id}
-                    onChange={handleInputPlayerChange}
-                  />
-                </div>
-              </div>
-
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="btn btn-secondary"
-                  onClick={() => setShowModal(false)}
-                >
-                  Cancelar
-                </button>
-                <button type="submit" className="btn btn-primary">
-                  Guardar
-                </button>
-              </div>
-            </form>
-          </div>
+      {error && (
+        <div
+          className="alert alert-danger alert-dismissible fade show mb-3"
+          role="alert"
+        >
+          <i className="bi bi-exclamation-triangle-fill me-2"></i>
+          {error}
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setError(null)}
+            aria-label="Close"
+          ></button>
         </div>
-      </div>
+      )}
 
-      {/* Fondo oscuro del modal */}
-      {showModal && <div className="modal-backdrop fade show"></div>}
+      <button
+        className={`btn ${isRegistered ? "btn-success" : "btn-primary"}`}
+        onClick={handleRegister}
+        disabled={isLoading || !isAuthenticated || isRegistered}
+        title={
+          !isAuthenticated
+            ? "Debes iniciar sesión para inscribirte"
+            : isRegistered
+            ? "Ya estás inscrito en este torneo"
+            : ""
+        }
+      >
+        {isLoading ? (
+          <>
+            <span
+              className="spinner-border spinner-border-sm me-2"
+              role="status"
+              aria-hidden="true"
+            ></span>
+            Inscribiendo...
+          </>
+        ) : isRegistered ? (
+          <>
+            <i className="bi bi-check-circle me-2"></i>
+            Inscrito
+          </>
+        ) : (
+          <>
+            <i className="ms ms-planeswalker ms-1x ms-cost ms-shadow me-2"></i>
+            Inscribirse
+          </>
+        )}
+      </button>
     </div>
   );
 }

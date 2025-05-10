@@ -387,6 +387,7 @@ function TournamentsDetailPage() {
                   onSuccess={fetchTournament}
                   tournament_id={id?.toString() || ""}
                   hasMatches={tournament.matches.length > 0} // Add this prop
+                  players={tournament.players}
                 />
                 <div className="d-flex gap-2">
                   {type === "elimination" && !Status && (

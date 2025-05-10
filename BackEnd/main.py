@@ -1,38 +1,104 @@
 #[ ] Agregar métodos para terminar un torneo y guardar los resultados
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Union, List
-from fastapi import FastAPI, HTTPException
-
+from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi import FastAPI
-from pydantic import BaseModel
-from .models import Players, session, Tournament, Matches, TournamentScores
-from .matchGeneration import generateMatches, generateNextPhaseMatches
 from fastapi.middleware.cors import CORSMiddleware
-from .schemas import TournamentBase, PlayerBase, MatchBase, TournamentScoreBase
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from pydantic import BaseModel
+from models import Players, session, Tournament, Matches, TournamentScores, Decks
+from matchGeneration import generateMatches, generateNextPhaseMatches
+from schemas import TournamentBase, PlayerBase, MatchBase, TournamentScoreBase, PlayerCreate, tabTournament, DecksBase, DecksCreate
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+
+# acces control settings
+SECRET_KEY = "your_secret_key_here"
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+outh2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 app = FastAPI()
 
 # Configuración de CORS
-origin = ["*"]
-app.add_middleware(CORSMiddleware, allow_origins=origin, allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
+origins = [
+    "http://localhost:5173",  # React dev server
+    "http://localhost:3000",  # Alternative React port
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:3000",
+    "http://192.168.56.101:5173",  # Add your frontend IP
+    "http://192.168.56.101:3000",  # Add your frontend IP
+]
 
-# Configuración de la base de datos
-class tabPlayers(BaseModel):
-    name:str
-    #createDate:str|None = datetime.now().strftime("%Y-%m-%d")
-    #personalScore:int|None = 0
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=[
+        "Content-Type",
+        "Authorization",
+        "Accept",
+        "Origin",
+        "X-Requested-With",
+        "Access-Control-Request-Method",
+        "Access-Control-Request-Headers"
+    ],
+    expose_headers=["*"],
+    max_age=3600,
+)
 
-class tabTournament(BaseModel):
-    name:str
-    #createDate:str|None = datetime.now().strftime("%Y-%m-%d")
-    type:str
+# player verification
+class Token(BaseModel):
+    access_token: str
+    token_type: str
 
+def verify_password(plain_password, hashed_password):
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception as e:
+        print(f"Password verification error: {str(e)}")
+        return False
+
+def get_password_hash(password):
+    return pwd_context.hash(password)
+
+def create_access_token(data:dict):
+    to_encode = data.copy() # Convertir a un diccionario
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES) # Tiempo de expiración
+    to_encode.update({"exp": expire}) # Agregar tiempo de expiración
+    encodedJwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM) # Codificar el token
+    return encodedJwt # Retornar el token
+
+async def get_current_user(token: str = Depends(outh2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM]) # Decodificar el token
+        email: str = payload.get("sub") # Obtener el email del usuario
+        if email is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    player = session.query(Players).filter(Players.email == email).first()
+    if player is None:
+        raise credentials_exception
+    return player
+
+# Definición de los modelos de datos
 
 @app.get("/")
 def read_root():
     return {"Description": "Magic Tournament API"}
+
 
 # métodos relacionados con jugadores
 @app.get("/player", response_model=List[PlayerBase])
@@ -61,15 +127,24 @@ async def readPlayer(player_id: int):
         )
 
 @app.post("/player")
-async def createUser(tabuser: tabPlayers):
+async def createPlayer(player: PlayerCreate):
+    dbPlayer = session.query(Players).filter(Players.email == player.email).first()
+    if dbPlayer:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already registered"
+        )
+    hashed_password = get_password_hash(player.password)
     newPlayer = Players(
-        name=tabuser.name,
+        name=player.name,
+        email=player.email,
+        hashed_password=hashed_password,
         creationDate=datetime.now(),
         personalScore=0
     )
     session.add(newPlayer)
     session.commit()
-    return {"message": "Player added"}
+    return {"message": "Player created successfully"}
 
 @app.patch("/player/{player_id}/score")
 async def updatePlayerScore(player_id: int, score: int):
@@ -140,11 +215,12 @@ async def getTournament(tournament_id: int):
             "type": tournament.type,
             "creationDate": tournament.creationDate,
             "status": tournament.status,
-            "currentPhase": tournament.currentPhase,  # Add current phase
+            "currentPhase": tournament.currentPhase,
             "players": [
                 {
                     "id": p.id,
                     "name": p.name,
+                    "email": p.email,  # Add email field
                     "creationDate": p.creationDate,
                     "personalScore": p.personalScore,
                     "tournament": []  # Avoid circular reference
@@ -159,7 +235,7 @@ async def getTournament(tournament_id: int):
                     "win": m.win,
                     "status": m.status,
                     "draw": m.draw,
-                    "phase": m.phase  # Add phase information
+                    "phase": m.phase
                 } for m in tournament.matches
             ],
             "scores": [
@@ -595,3 +671,136 @@ async def next_phase(tournament_id: int):
         print(f"DEBUG: Stack trace: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/token")
+async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+    try:
+        # Get player from database
+        player = session.query(Players).filter(Players.email == form_data.username).first()
+
+        # Check if player exists and password is correct
+        if not player:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        if not verify_password(form_data.password, player.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect password",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        # Generate access token
+        access_token = create_access_token(data={"sub": player.email})
+
+        # Return token with player info
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {
+                "id": player.id,
+                "name": player.name,
+                "email": player.email
+            }
+        }
+
+    except Exception as e:
+        print(f"Login error: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error during login process"
+        )
+
+
+
+@app.get("/player/{player_id}/matches")
+async def get_player_matches(player_id: int):
+    matches = session.query(Matches).filter(
+        (Matches.player1_id == player_id) | (Matches.player2_id == player_id)
+    ).all()
+    return matches
+
+# decks
+
+class DeckUpdate(BaseModel):
+    deckName: str
+    format: str
+    deckDescription: str
+    deckList: str
+    player_id: int
+
+@app.get("/decks/{deckID}")
+async def get_deck(deckID: int):
+    deck = session.query(Decks).filter(Decks.id == deckID).first()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+    return deck
+
+@app.post("/decks")
+async def create_deck(deck: DecksCreate):
+    new_deck = Decks(
+        deckName=deck.deckName,
+        format=deck.format,
+        creationDate=datetime.now(),
+        deckDescription=deck.deckDescription,
+        player_id=deck.player_id,
+        deckList=deck.deckList
+    )
+    session.add(new_deck)
+    session.commit()
+    return {"message": "Deck created successfully"}
+
+@app.get("/decks")
+async def get_decks():
+    decks = session.query(Decks).all()
+    return decks
+
+@app.patch("/decks/{deckID}")
+async def update_deck(deckID: int, deck_update: DeckUpdate):
+    try:
+        existing_deck = session.query(Decks).filter(Decks.id == deckID).first()
+        if not existing_deck:
+            raise HTTPException(status_code=404, detail="Deck not found")
+
+        # Verify ownership
+        if existing_deck.player_id != deck_update.player_id:
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to update this deck"
+            )
+
+        # Update deck attributes
+        existing_deck.deckName = deck_update.deckName
+        existing_deck.format = deck_update.format
+        existing_deck.deckDescription = deck_update.deckDescription
+        existing_deck.deckList = deck_update.deckList
+
+        session.commit()
+        return {
+            "message": "Deck updated successfully",
+            "deck": {
+                "id": existing_deck.id,
+                "deckName": existing_deck.deckName,
+                "format": existing_deck.format,
+                "deckDescription": existing_deck.deckDescription,
+                "player_id": existing_deck.player_id,
+                "creationDate": existing_deck.creationDate.isoformat()
+            }
+        }
+    except Exception as e:
+        session.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error updating deck: {str(e)}"
+        )
+
+@app.delete("/decks/{deckID}")
+async def delete_deck(deckID: int):
+    deck = session.query(Decks).filter(Decks.id == deckID).first()
+    if not deck:
+        raise HTTPException(status_code=404, detail="Deck not found")
+    session.delete(deck)
+    session.commit()
+    return {"message": "Deck deleted successfully"}

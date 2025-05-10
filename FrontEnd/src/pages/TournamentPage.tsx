@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import TournamentCard from "../components/TournamentCard";
 import CrearTorneo from "../components/CreateTournament";
+import { useAuth } from "../context/playerContext";
 
 // Move types to separate file for better organization
 type Tournament = {
@@ -38,6 +39,7 @@ type Match = {
   id: number;
   player2_id: number;
   status: boolean;
+  phase: number; // Added the missing 'phase' property
 };
 
 function TournamentPage() {
@@ -46,6 +48,7 @@ function TournamentPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<"all" | "active" | "finished">("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const { isAuthenticated } = useAuth();
 
   const fetchTournament = async () => {
     setIsLoading(true);
@@ -83,7 +86,18 @@ function TournamentPage() {
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center">
             <h1 className="mb-0">Torneos</h1>
-            <CrearTorneo onSuccess={fetchTournament} />
+            {isAuthenticated ? (
+              <CrearTorneo onSuccess={fetchTournament} />
+            ) : (
+              <button
+                className="btn btn-primary"
+                disabled
+                title="Inicia sesión para crear un torneo"
+              >
+                <i className="bi bi-lock me-2"></i>
+                Crear Torneo
+              </button>
+            )}
           </div>
         </div>
       </div>

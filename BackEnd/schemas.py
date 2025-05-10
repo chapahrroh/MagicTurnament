@@ -1,4 +1,4 @@
-from pydantic import BaseModel, conint
+from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
 
@@ -26,12 +26,25 @@ class TournamentBaseSimple(BaseModel):
 class PlayerBase(BaseModel):
     id: int
     name: str
+    email: str
     creationDate: datetime
     personalScore: int
     tournament: List[TournamentBaseSimple] = []
+    disabled: bool = False
 
     class Config:
         orm_mode = True
+
+## Player Create schema
+class PlayerCreate(BaseModel):
+    name: str
+    email: str
+    password: str
+
+## Player Login schema
+class playerLoguin(BaseModel):
+    email: str
+    password: str
 
 # TournamentScores
 class TournamentScoreBase(BaseModel):
@@ -71,3 +84,34 @@ class TournamentBase(BaseModel):
 
     class Config:
         orm_mode = True
+
+# deck schemems
+class DecksBase(BaseModel):
+    id : int
+    player_id : int
+    deckName : str
+    format : str
+    deckDescription :str
+    creationDate : datetime
+    deckList : str
+
+    class Config:
+        orm_mode = True
+
+class DecksCreate(BaseModel):
+    player_id : int
+    deckName : str
+    format : str
+    deckDescription :str
+    deckList : str
+
+# Configuración de la base de datos
+class tabPlayers(BaseModel):
+    name:str
+    #createDate:str|None = datetime.now().strftime("%Y-%m-%d")
+    #personalScore:int|None = 0
+
+class tabTournament(BaseModel):
+    name:str
+    #createDate:str|None = datetime.now().strftime("%Y-%m-%d")
+    type:str

@@ -70,10 +70,10 @@ function PlayersPage() {
         <div className="col-12">
           <div className="d-flex justify-content-between align-items-center">
             <h1 className="mb-0">Jugadores</h1>
-            <div className="d-flex gap-2">
+            {/* <div className="d-flex gap-2">
               <CrearJugador onSuccess={fetchPlayers} />
               <DeletPlayer onSuccess={fetchPlayers} />
-            </div>
+            </div> */}
           </div>
         </div>
       </div>
