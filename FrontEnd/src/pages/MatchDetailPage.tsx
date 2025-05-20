@@ -2,35 +2,11 @@ import { useParams } from "react-router-dom";
 import { useState, useEffect } from "react";
 import SetMatchWinCard from "../components/SetMatchWinCard";
 import axios from "axios";
-
-type Match = {
-  id: number;
-  tournament_id: number;
-  player1_id: number;
-  player2_id: number | null;
-  win: number | null;
-  status: boolean;
-  draw: boolean;
-};
-
-type Tournament = {
-  id: number;
-  name: string;
-  startDate: string;
-  endDate: string;
-};
-
-type Player = {
-  id: number;
-  name: string;
-  creationDate: string;
-  personalScore: number;
-  tournament?: Tournament[];
-};
+import { Matches, Player } from "../Types/Types";
 
 function MatchDetail() {
   const { id } = useParams();
-  const [match, setMatch] = useState<Match | null>(null);
+  const [match, setMatch] = useState<Matches | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [player1Name, setPlayer1Name] = useState<string>("");

@@ -1,46 +1,9 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
 import TournamentCard from "../components/TournamentCard";
 import CrearTorneo from "../components/CreateTournament";
 import { useAuth } from "../context/playerContext";
-
-// Move types to separate file for better organization
-type Tournament = {
-  id: number;
-  name: string;
-  type: string;
-  creationDate: string;
-  status: boolean;
-  players: Player[];
-  scores: Score[];
-  matches: Match[];
-};
-
-type Player = {
-  id: number;
-  name: string;
-  creationDate: string;
-  personalScore: number;
-  tournament: Tournament[];
-};
-
-type Score = {
-  id: number;
-  player_id: number;
-  tournament_id: number;
-  score: number;
-};
-
-type Match = {
-  tournament_id: number;
-  player1_id: number;
-  win: number | null;
-  draw: boolean;
-  id: number;
-  player2_id: number;
-  status: boolean;
-  phase: number; // Added the missing 'phase' property
-};
+import { Tournament } from "../Types/Types";
+import { fetchTournaments } from "../api/apiRequests";
 
 function TournamentPage() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -50,24 +13,21 @@ function TournamentPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const { isAuthenticated } = useAuth();
 
-  const fetchTournament = async () => {
+  const loadTournamets = async () => {
     setIsLoading(true);
-    setError(null);
-    try {
-      const res = await axios.get<Tournament[]>(
-        "http://192.168.56.101:8000/tournament"
-      );
-      setTournaments(res.data);
-    } catch (error) {
-      setError("Error al cargar los torneos");
-      console.error("Error fetching tournaments:", error);
-    } finally {
-      setIsLoading(false);
+    const { tournament: fetchedTournaments, error: fetchError } =
+      await fetchTournaments();
+    if (fetchedTournaments) {
+      setTournaments(fetchedTournaments);
+    } else {
+      setTournaments([]);
     }
+    setError(fetchError);
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchTournament();
+    loadTournamets();
   }, []);
 
   const filteredTournaments = tournaments
@@ -87,7 +47,7 @@ function TournamentPage() {
           <div className="d-flex justify-content-between align-items-center">
             <h1 className="mb-0">Torneos</h1>
             {isAuthenticated ? (
-              <CrearTorneo onSuccess={fetchTournament} />
+              <CrearTorneo onSuccess={loadTournamets} />
             ) : (
               <button
                 className="btn btn-primary"
@@ -174,7 +134,7 @@ function TournamentPage() {
           <div className="col" key={tournament.id}>
             <TournamentCard
               key={tournament.id}
-              onSuccess={fetchTournament}
+              onSuccess={loadTournamets}
               type={tournament.type}
               Players={tournament.players}
               id={tournament.id}

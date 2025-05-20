@@ -3,48 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { useAuth } from "../context/playerContext";
 import CardSearchModal from "../components/CardSearchModal"; // Adjust the path as needed
+import {
+  ScryfallCard,
+  DeckCard,
+  DeckFormData,
+  CardEntry,
+} from "../Types/interface"; // Adjust the path as needed
 
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
-
-interface ScryfallCard {
-  id: string;
-  name: string;
-  image_uris?: {
-    small: string;
-    normal: string;
-    art_crop: string;
-  };
-  card_faces?: Array<{
-    name: string;
-    image_uris: {
-      small: string;
-      normal: string;
-      art_crop: string;
-    };
-  }>;
-  mana_cost?: string;
-  type_line?: string;
-  oracle_text?: string;
-}
-
-interface DeckCard {
-  id: string;
-  name: string;
-  quantity: number;
-  image: string;
-}
-
-interface CardEntry {
-  quantity: number;
-  id: string;
-}
-
-interface DeckFormData {
-  deckName: string;
-  format: string;
-  deckDescription: string;
-}
-
 const parseDeckList = async (deckList: string): Promise<DeckCard[]> => {
   try {
     const lines = deckList

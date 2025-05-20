@@ -1,24 +1,7 @@
 import { useEffect, useState } from "react";
-import axios from "axios";
-import CrearJugador from "../components/CreatePlayer";
-import DeletPlayer from "../components/DeletPlayer";
 import PlayerCard from "../components/PlayerCard";
-
-type Tournament = {
-  id: number;
-  name: string;
-  type: string;
-  status: boolean;
-  creationDate: string;
-};
-
-interface Player {
-  id: number;
-  creationDate: string;
-  name: string;
-  personalScore: number;
-  tournament: Tournament[];
-}
+import { Player } from "../Types/Types";
+import { fetchPlayers } from "../api/apiRequests";
 
 function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
@@ -26,22 +9,21 @@ function PlayersPage() {
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const fetchPlayers = async () => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      const res = await axios.get("http://192.168.56.101:8000/player");
-      setPlayers(res.data);
-    } catch (error) {
-      setError("Error al cargar los jugadores. Por favor, intente de nuevo.");
-      console.error("Error fetching players:", error);
-    } finally {
-      setIsLoading(false);
+  const loadPlayers = async () => {
+    setIsLoading(true);
+    setError(null);
+    const { Players: fetchedPlayers, error: fetchError } = await fetchPlayers();
+    if (fetchedPlayers) {
+      setPlayers(fetchedPlayers);
+    } else {
+      setPlayers([]);
     }
+    setError(fetchError);
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchPlayers();
+    loadPlayers();
   }, []);
 
   const filteredPlayers = players.filter((player) =>

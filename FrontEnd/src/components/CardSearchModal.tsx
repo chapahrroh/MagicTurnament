@@ -1,26 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-
-interface ScryfallCard {
-  id: string;
-  name: string;
-  image_uris?: {
-    small: string;
-    normal: string;
-    art_crop: string;
-  };
-  card_faces?: Array<{
-    name: string;
-    image_uris: {
-      small: string;
-      normal: string;
-      art_crop: string;
-    };
-  }>;
-  mana_cost?: string;
-  type_line?: string;
-  oracle_text?: string;
-}
+import { CardData as ScryfallCard } from "../Types/Types";
 
 interface CardSearchModalProps {
   show: boolean;

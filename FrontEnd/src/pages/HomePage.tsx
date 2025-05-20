@@ -2,19 +2,7 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/playerContext";
-
-interface Player {
-  id: number;
-  name: string;
-  personalScore: number;
-}
-
-interface Tournament {
-  id: number;
-  name: string;
-  status: boolean;
-  type: string;
-}
+import { Player, Tournament } from "../Types/Types";
 
 function HomePage() {
   const { isAuthenticated } = useAuth();

@@ -1,54 +1,15 @@
 import { useEffect, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
-import axios from "axios";
 import { Link } from "react-router-dom";
-
+import { Match, Tournament, GroupedMatches } from "../Types/Types";
 import DeletCard from "../components/DeletCard";
 import AddPlayerTournament from "../components/AddPlayerTournament";
 import GenerateMatchButon from "../components/GenerateMatchButon";
-
-interface Player {
-  id: number;
-  name: string;
-  personalScore: number;
-}
-
-interface Match {
-  id: number;
-  player1_id: number;
-  player2_id: number;
-  status: boolean;
-  draw: boolean;
-  win: number | null;
-  phase: number; // Added phase property
-}
-
-interface TournamentScore {
-  player_id: number;
-  score: number;
-}
-
-interface Tournament {
-  id: number;
-  name: string;
-  type: string;
-  creationDate: string;
-  status: boolean;
-  players: Player[];
-  matches: Match[];
-  scores: TournamentScore[];
-  currentPhase?: number;
-  final_standings?: Array<{
-    position: number;
-    player_id: number;
-    player_name: string;
-    final_score: number;
-  }>;
-}
-
-interface GroupedMatches {
-  [phase: number]: Match[];
-}
+import {
+  fetchTournamentById,
+  nextTournamentPhase,
+  finishTournament,
+} from "../api/apiRequests";
 
 function TournamentsDetailPage() {
   const { id } = useParams();
@@ -75,24 +36,21 @@ function TournamentsDetailPage() {
     }, {});
   }, [tournament]);
 
-  const fetchTournament = async () => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(
-        `http://192.168.56.101:8000/tournament/${id}`
-      );
-      // Remove the [0] since we're getting a single object
-      setTournament(response.data);
-    } catch (error) {
-      setError("Error al cargar el torneo");
-      console.error("Error fetching tournament:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const loadTournamet = async () => {
+    setIsLoading(true);
+    const { tournament: fetchedTournament, error: fetchError } =
+      await fetchTournamentById(id || "");
+    setTournament(
+      Array.isArray(fetchedTournament)
+        ? fetchedTournament[0]
+        : fetchedTournament
+    );
+    setError(fetchError);
+    setIsLoading(false);
   };
 
   useEffect(() => {
-    fetchTournament();
+    loadTournamet();
   }, [id]);
 
   useEffect(() => {
@@ -133,30 +91,22 @@ function TournamentsDetailPage() {
   };
 
   const handleNextPhase = async () => {
-    try {
-      await axios.post(
-        `http://192.168.56.101:8000/tournament/${id}/next-phase`
-      );
-
-      await fetchTournament();
-    } catch (error) {
-      console.error("Error advancing to next phase:", error);
-      setError("Error al avanzar a la siguiente fase");
+    const { success, error: nextPhaseError } = await nextTournamentPhase(
+      id || ""
+    );
+    if (success) {
+      await loadTournamet();
+    } else {
+      setError(nextPhaseError);
     }
   };
 
   const handleFinishTournament = async () => {
-    try {
-      await axios.post(`http://192.168.56.101:8000/tournament/${id}/finish`);
-      await fetchTournament();
-    } catch (error: any) {
-      console.error("Error finishing tournament:", error);
-      // Show error message to user if the tournament has unfinished matches
-      if (error.response?.status === 400) {
-        setError(error.response.data.detail);
-      } else {
-        setError("Error al finalizar el torneo");
-      }
+    const { success, error: finishError } = await finishTournament(id || "");
+    if (success) {
+      await loadTournamet();
+    } else {
+      setError(finishError);
     }
   };
 
@@ -384,7 +334,7 @@ function TournamentsDetailPage() {
               <div className="d-flex gap-2 justify-content-between">
                 <AddPlayerTournament
                   status={Status}
-                  onSuccess={fetchTournament}
+                  onSuccess={loadTournamet}
                   tournament_id={id?.toString() || ""}
                   hasMatches={tournament.matches.length > 0} // Add this prop
                   players={tournament.players}
@@ -404,7 +354,7 @@ function TournamentsDetailPage() {
                     <>
                       <GenerateMatchButon
                         status={Status}
-                        onSuccess={fetchTournament}
+                        onSuccess={loadTournamet}
                         id={id?.toString() || ""}
                         hasMatches={tournament.matches.length > 0} // Add this prop
                       />
@@ -419,7 +369,7 @@ function TournamentsDetailPage() {
                   )}
                   <DeletCard
                     id={id?.toString() || ""}
-                    onSuccess={fetchTournament}
+                    onSuccess={loadTournamet}
                     cardtype="tournament"
                   />
                 </div>

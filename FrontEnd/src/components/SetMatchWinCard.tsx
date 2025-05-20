@@ -1,13 +1,14 @@
 import { useState, ChangeEvent, FormEvent } from "react";
 import axios from "axios";
+import { Match } from "../Types/Types";
 
 interface SetMatchWinCardProps {
-  matchId: number;
+  onSuccess: () => void;
+  matchId: string;
   player1Name: string;
   player2Name: string;
   player1Id: number;
-  player2Id: number | null;
-  onSuccess: (matchId: number) => void;
+  player2Id: number;
 }
 
 // Changed to PascalCase for component naming convention
@@ -61,7 +62,7 @@ function SetMatchWinCard({
       );
 
       if (res.status === 200) {
-        onSuccess(matchId);
+        onSuccess();
         setShowModal(false);
         // Reset form
         setSelectedPlayer("");

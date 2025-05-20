@@ -1,12 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-interface RegisterData {
-  name: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-}
+import { RegisterData } from "../Types/Types";
+import { registerPlayer } from "../api/apiRequests";
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -37,22 +32,15 @@ function RegisterPage() {
     }
 
     try {
-      const response = await fetch("http://192.168.56.101:8000/player", {
-        // Fixed the URL
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
-      });
+      const response = await registerPlayer(formData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || "Registration failed");
+      if (!response.success) {
+        const errorData = response.error as { detail?: string } | string;
+        const errorDetail =
+          typeof errorData === "string"
+            ? JSON.parse(errorData).detail
+            : errorData?.detail || "Unknown error occurred";
+        throw new Error(errorDetail || "Registration failed");
       }
 
       // Registration successful
