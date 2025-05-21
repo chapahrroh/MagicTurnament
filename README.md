@@ -1,10 +1,13 @@
-# 🪄 Gestor de Torneos de Magic
+# 🪄 Magic Tournament Manager
 
-[![Licencia: MIT](https://img.shields.io/badge/Licencia-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.8+](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
-[![React](https://img.shields.io/badge/React-18+-61DAFB.svg?logo=react)](https://reactjs.org/)
+[![Licencia: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13](https://img.shields.io/badge/Python-3.13-blue.svg)](https://www.python.org/)
+[![React 18](https://img.shields.io/badge/React-18.2-61DAFB.svg?logo=react)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-3178C6.svg?logo=typescript)](https://www.typescriptlang.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.104.0-009688.svg?logo=fastapi)](https://fastapi.tiangolo.com/)
+[![Bootstrap 5](https://img.shields.io/badge/Bootstrap-5.3-7952B3.svg?logo=bootstrap)](https://getbootstrap.com/)
 
-Una aplicación web moderna para gestionar torneos de Magic: The Gathering con formatos de **eliminación** y **todos contra todos**.
+Una aplicación web moderna y completa para gestionar torneos de Magic: The Gathering, con soporte para formatos de **eliminación** y **todos contra todos**. Incluye gestión avanzada de mazos, integración con Scryfall, estadísticas detalladas y una interfaz de usuario moderna y dinámica.
 
 ## 📸 Vistas Previas
 
@@ -49,27 +52,39 @@ _Visualización de posiciones finales y estadísticas_
 - 🏅 Sistema dinámico de puntuación
 - 🎯 Seguimiento de rendimiento
 
-### ⚔️ Gestión de Partidas
+### ⚔️ Gestión de Partidas y Mazos
 
 - ⚡ Resultados de partidas en tiempo real
-- 📜 Historial completo de partidas
-- 🤝 Soporte para empates
+- 📜 Historial completo de partidas y mazos
+- 🤝 Soporte para empates y resultados especiales
 - 🔄 Generación automática de siguientes fases
+- 🎴 Creación y edición de mazos con búsqueda Scryfall
+- 📋 Importación de listas de mazos
+- 🖼️ Visualización de cartas en tiempo real
+- 📊 Estadísticas de mazos y cartas más usadas (proximanente)
 
 ## 🛠️ Tecnologías Utilizadas
 
 ### Backend
 
-- 🐍 Python 3.8+ con FastAPI
-- 🗃️ SQLAlchemy ORM
-- 📦 Base de datos SQLite
+- 🐍 Python 3.13 con FastAPI 0.104.0
+- 🗃️ SQLAlchemy ORM con sistema de migraciones Alembic
+- 📦 Base de datos SQLite optimizada
+- 🔒 Sistema de autenticación JWT
+- 🎲 Algoritmos avanzados de generación de torneos
+- 📊 API RESTful con documentación automática
+- 🔄 Sistema de actualización en tiempo real
+- 🛡️ Validación de datos con Pydantic
 
 ### Frontend
 
-- ⚛️ React 18+ con TypeScript
-- 🎨 Bootstrap 5
-- 🔄 Axios para comunicación API
-- 📱 Diseño responsivo
+- ⚛️ React 18.2 con TypeScript 5.0
+- 🎨 Bootstrap 5.3 con diseño moderno y responsivo
+- 🃏 Integración con la API de Scryfall para cartas de Magic
+- 🎭 Temas oscuros y efectos visuales modernos
+- 🔄 Sistema de autenticación y manejo de estado
+- 📊 Visualización dinámica de estadísticas
+- 📱 Interfaz adaptativa para todos los dispositivos
 
 ## 🚀 Inicio Rápido
 
@@ -112,16 +127,33 @@ npm run dev
 ```
 MagicTurnament/
 ├── Backend/
-│   ├── models.py         # Modelos de base de datos
-│   ├── main.py          # Aplicación FastAPI
-│   ├── schemas.py       # Esquemas Pydantic
-│   └── matchGeneration.py # Lógica de generación de partidas
+│   ├── models.py           # Modelos de base de datos
+│   ├── main.py            # Aplicación FastAPI
+│   ├── schemas.py         # Esquemas Pydantic
+│   ├── config.py          # Configuración de la aplicación
+│   ├── matchGeneration.py # Lógica de generación de partidas
+│   ├── create_db.py       # Script de creación de BD
+│   ├── clearDB.py         # Utilidad de limpieza de BD
+│   └── alembic/           # Sistema de migraciones
+│       └── versions/      # Migraciones de base de datos
 ├── Frontend/
 │   ├── src/
-│   │   ├── components/  # Componentes React
-│   │   ├── pages/      # Páginas
-│   │   └── types/      # Tipos TypeScript
+│   │   ├── api/          # Cliente API y requests
+│   │   ├── components/   # Componentes React reutilizables
+│   │   ├── context/     # Contextos de React (auth, etc)
+│   │   ├── hooks/       # Custom hooks
+│   │   ├── pages/       # Componentes de página
+│   │   └── Types/       # Definiciones de tipos TypeScript
+│   ├── public/          # Activos estáticos
 │   └── package.json
+├── DB/
+│   └── database.sqlite  # Base de datos SQLite
+├── preview/            # Imágenes de preview
+│   ├── Home.png
+│   ├── players.png
+│   ├── playerdetail.png
+│   ├── tournamet.png
+│   └── turnamentdetail.png
 └── README.md
 ```
 
