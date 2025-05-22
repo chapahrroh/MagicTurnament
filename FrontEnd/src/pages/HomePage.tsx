@@ -26,8 +26,8 @@ function HomePage() {
       try {
         setIsLoading(true);
         const [playersRes, tournamentsRes] = await Promise.all([
-          axios.get("http://192.168.56.101:8000/player"),
-          axios.get("http://192.168.56.101:8000/tournament"),
+          axios.get(`${import.meta.env.VITE_BACKEND_SERVER}/player`),
+          axios.get(`${import.meta.env.VITE_BACKEND_SERVER}/tournament`),
         ]);
 
         setTopPlayers(

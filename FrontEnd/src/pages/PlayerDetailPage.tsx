@@ -29,7 +29,7 @@ function PlayerDetailPage() {
       try {
         setIsLoading(true);
         const response = await axios.get(
-          `http://192.168.56.101:8000/player/${id}`
+          `${import.meta.env.VITE_BACKEND_SERVER}/player/${id}`
         );
         setPlayer(response.data);
         console.log("Player data:", response.data);

@@ -52,7 +52,7 @@ function TournamentPage() {
     setError(null);
     try {
       const res = await axios.get<Tournament[]>(
-        "http://192.168.56.101:8000/tournament"
+          `${import.meta.env.VITE_BACKEND_SERVER}/tournament`
       );
       setTournaments(res.data);
     } catch (error) {

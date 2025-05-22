@@ -79,7 +79,7 @@ function TournamentsDetailPage() {
     try {
       setIsLoading(true);
       const response = await axios.get(
-        `http://192.168.56.101:8000/tournament/${id}`
+        `${import.meta.env.VITE_BACKEND_SERVER}/tournament/${id}`
       );
       // Remove the [0] since we're getting a single object
       setTournament(response.data);
@@ -135,7 +135,7 @@ function TournamentsDetailPage() {
   const handleNextPhase = async () => {
     try {
       await axios.post(
-        `http://192.168.56.101:8000/tournament/${id}/next-phase`
+        `{import.meta.env.VITE_BACKEND_SERVER}/tournament/${id}/next-phase`
       );
 
       await fetchTournament();
@@ -147,7 +147,7 @@ function TournamentsDetailPage() {
 
   const handleFinishTournament = async () => {
     try {
-      await axios.post(`http://192.168.56.101:8000/tournament/${id}/finish`);
+      await axios.post(`{import.meta.env.VITE_BACKEND_SERVER}/tournament/${id}/finish`);
       await fetchTournament();
     } catch (error: any) {
       console.error("Error finishing tournament:", error);

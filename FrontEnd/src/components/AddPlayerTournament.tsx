@@ -24,7 +24,7 @@ function AddPlayerTournament(props: AddPlayerTournamentProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const res = await axios.post(
-      `http://192.168.56.101:8000/tournament/${tournament_id}/player/${player_id}`
+      `${import.meta.env.VITE_BACKEND_SERVER}/tournament/${tournament_id}/player/${player_id}`
     );
 
     console.log(res);

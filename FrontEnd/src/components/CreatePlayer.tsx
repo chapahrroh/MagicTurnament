@@ -16,7 +16,7 @@ function EliminarJugador(props: CrearJugadorProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const res = await axios.post("http://192.168.56.101:8000/player", {
+    const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER}/player`, {
       name: formData,
     });
 

@@ -41,7 +41,7 @@ function MatchDetail() {
       setIsLoading(true);
       setError(null);
       const res = await axios.get(
-        `http://192.168.56.101:8000/match/${matchId}`
+        `${import.meta.env.VITE_BACKEND_SERVER}/match/${matchId}`
       );
       if (res.data && res.data.length > 0) {
         setMatch(res.data[0]);
@@ -64,7 +64,7 @@ function MatchDetail() {
   ) => {
     try {
       const player1Res = await axios.get<Player>(
-        `http://192.168.56.101:8000/player/${player1Id}`
+        `${import.meta.env.VITE_BACKEND_SERVER}/player/${player1Id}`
       );
       if (player1Res.data) {
         setPlayer1Name(player1Res.data.name); // Updated from nombre to name
@@ -72,7 +72,7 @@ function MatchDetail() {
 
       if (player2Id) {
         const player2Res = await axios.get<Player>(
-          `http://192.168.56.101:8000/player/${player2Id}`
+          `${import.meta.env.VITE_BACKEND_SERVER}/player/${player2Id}`
         );
         if (player2Res.data) {
           setPlayer2Name(player2Res.data.name); // Updated from nombre to name
