@@ -30,7 +30,8 @@ function PlayersPage() {
     try {
       setIsLoading(true);
       setError(null);
-      const res = await axios.get("http://192.168.56.101:8000/player");
+      console.log(`${import.meta.env.VITE_BACKEND_SERVER}/player`)
+      const res = await axios.get(`${import.meta.env.VITE_BACKEND_SERVER}/player`);
       setPlayers(res.data);
     } catch (error) {
       setError("Error al cargar los jugadores. Por favor, intente de nuevo.");

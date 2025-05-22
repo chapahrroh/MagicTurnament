@@ -17,7 +17,7 @@ function GenerateMatchButon({
   const handleGenerateMatches = async (e: any) => {
     e.preventDefault();
     const res = await axios.post(
-      `http://192.168.56.101:8000/tournament/${tournametId}/generate_matches`
+      `${import.meta.env.VITE_BACKEND_SERVER}/tournament/${tournametId}/generate_matches`
     );
     console.log(res);
     onSuccess();

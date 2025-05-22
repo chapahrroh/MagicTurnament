@@ -17,7 +17,7 @@ function CrearJugador(props: CrearJugadorProps) {
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     const res = await axios.delete(
-      `http://192.168.56.101:8000/player/${formData}`
+      `${import.meta.env.VITE_BACKEND_SERVER}/player/${formData}`
     );
     console.log(res);
     setFormData("");

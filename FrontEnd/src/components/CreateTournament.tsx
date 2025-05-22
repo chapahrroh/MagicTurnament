@@ -21,7 +21,7 @@ function CrearTorneo(props: CrearTorneoProps) {
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
-    const res = await axios.post("http://192.168.56.101:8000/tournament", {
+    const res = await axios.post(`${import.meta.env.VITE_BACKEND_SERVER}/tournament`, {
       name: formData,
       type: selectedOption,
     });

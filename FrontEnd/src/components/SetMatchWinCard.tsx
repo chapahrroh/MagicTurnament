@@ -57,7 +57,7 @@ function SetMatchWinCard({
       setError(null);
 
       const res = await axios.post(
-        `http://192.168.56.101:8000/match/${matchId}/${selectedPlayer}/${selectedDraw}`
+        `${import.meta.env.VITE_BACKEND_SERVER}/match/${matchId}/${selectedPlayer}/${selectedDraw}`
       );
 
       if (res.status === 200) {
