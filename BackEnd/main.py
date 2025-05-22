@@ -6,10 +6,10 @@ from fastapi import FastAPI, HTTPException
 
 from fastapi import FastAPI
 from pydantic import BaseModel
-from .models import Players, session, Tournament, Matches, TournamentScores
-from .matchGeneration import generateMatches, generateNextPhaseMatches
+from models import Players, session, Tournament, Matches, TournamentScores
+from matchGeneration import generateMatches, generateNextPhaseMatches
 from fastapi.middleware.cors import CORSMiddleware
-from .schemas import TournamentBase, PlayerBase, MatchBase, TournamentScoreBase
+from schemas import TournamentBase, PlayerBase, MatchBase, TournamentScoreBase
 
 
 app = FastAPI()

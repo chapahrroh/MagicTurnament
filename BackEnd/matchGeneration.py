@@ -1,4 +1,4 @@
-from .models import session, Tournament, Matches
+from models import session, Tournament, Matches
 from random import shuffle
 from typing import List
 from sqlalchemy import func
